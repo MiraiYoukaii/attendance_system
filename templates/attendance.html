@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Presença</title>
+</head>
+<body>
+    <h1>Presenças Registradas</h1>
+    <table border="1">
+        <tr>
+            <th>Nome</th>
+            <th>Turma</th>
+            <th>Turno</th>
+            <th>Status</th>
+        </tr>
+        {% for student in students %}
+        <tr>
+            <td>{{ student.name }}</td>
+            <td>{{ student.class_name }}</td>
+            <td>{{ student.shift }}</td>
+            <td>{{ student.attendance_status }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
