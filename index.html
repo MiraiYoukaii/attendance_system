@@ -3,25 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Registro de Presença</title>
+    <title>Attendance System</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+    <!-- Página principal com todas as funcionalidades -->
+
+    <!-- Cabeçalho -->
     <header>
-        <h1>Sistema de Registro de Presença</h1>
+        <h1>Attendance System</h1>
+        <p>Gerencie os registros de presença e cadastre novos alunos.</p>
     </header>
-    <main>
-        <div class="menu">
-            <h2>Bem-vindo</h2>
-            <p>Escolha uma das opções abaixo:</p>
-            <ul>
-                <li><a href="/register">Cadastrar Aluno</a></li>
-                <li><a href="/attendance">Registro de Presença</a></li>
-            </ul>
-        </div>
-    </main>
+
+    <hr>
+
+    <!-- Área de navegação entre seções -->
+    <nav>
+        <!-- Links para rolar até cada funcionalidade -->
+        <ul>
+            <li><a href="#register-section">Cadastrar Aluno</a></li>
+            <li><a href="#attendance-section">Visualizar Presenças</a></li>
+        </ul>
+    </nav>
+
+    <hr>
+
+    <!-- Seção de Cadastro -->
+    <section id="register-section">
+        <h2>Cadastrar Aluno</h2>
+        <!-- Formulário de cadastro -->
+        <form action="/register" method="POST" enctype="multipart/form-data">
+            <!-- Campo para nome do aluno -->
+            <label for="name">Nome do Aluno:</label>
+            <input type="text" id="name" name="name" required><br><br>
+
+            <!-- Campo para a turma -->
+            <label for="class">Turma:</label>
+            <input type="text" id="class" name="class" required><br><br>
+
+            <!-- Campo para o turno -->
+            <label for="shift">Turno:</label>
+            <select id="shift" name="shift" required>
+                <option value="Manhã">Manhã</option>
+                <option value="Tarde">Tarde</option>
+            </select><br><br>
+
+            <!-- Upload de foto -->
+            <label for="photo">Foto do Aluno:</label>
+            <input type="file" id="photo" name="photo" accept="image/*" required><br><br>
+
+            <!-- Simulação do leitor biométrico -->
+            <p>Coloque o dedo no leitor biométrico para registrar a digital.</p>
+            <button type="button" onclick="alert('Digital registrada com sucesso!')">Registrar Digital</button><br><br>
+
+            <!-- Botão para enviar o formulário -->
+            <button type="submit">Cadastrar Aluno</button>
+        </form>
+    </section>
+
+    <hr>
+
+    <!-- Seção de Visualização de Presenças -->
+    <section id="attendance-section">
+        <h2>Visualizar Presenças</h2>
+        <!-- Tabela que será preenchida dinamicamente -->
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Turma</th>
+                    <th>Turno</th>
+                    <th>Horário de Entrada</th>
+                    <th>Horário de Saída</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Esta seção será preenchida dinamicamente pelo Flask -->
+                <!-- Exemplo estático para visualização -->
+                <tr>
+                    <td>João Silva</td>
+                    <td>3A</td>
+                    <td>Manhã</td>
+                    <td>08:00</td>
+                    <td>12:00</td>
+                    <td><span style="color:green;">✔ No horário</span></td>
+                </tr>
+                <tr>
+                    <td>Maria Oliveira</td>
+                    <td>2B</td>
+                    <td>Tarde</td>
+                    <td>13:20</td>
+                    <td>17:00</td>
+                    <td><span style="color:orange;">⚠ Atrasada</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <hr>
+
+    <!-- Rodapé -->
     <footer>
-        <p>&copy; 2024 Sistema de Registro de Presença. Todos os direitos reservados.</p>
+        <p>Sistema desenvolvido para o controle de presença escolar.</p>
     </footer>
 </body>
 </html>
