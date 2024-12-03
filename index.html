@@ -3,108 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance System</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <title>Sistema de Presença</title>
 </head>
 <body>
-    <!-- Cabeçalho -->
-    <header>
-        <h1>Attendance System</h1>
-        <p>Gerencie os registros de presença e cadastre novos alunos.</p>
-    </header>
+    <h1>Sistema de Presença</h1>
+    
+    <button id="connectButton">Conectar ao Leitor</button>
+    <div id="status">Aguardando digital...</div>
 
-    <hr>
+    <h2>Lista de Presenças</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Turma</th>
+                <th>Horário de Entrada</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="attendanceList">
+            <!-- Dados de presença serão exibidos aqui -->
+        </tbody>
+    </table>
 
-    <!-- Área de navegação entre seções -->
-    <nav>
-        <!-- Links para rolar até cada funcionalidade -->
-        <ul>
-            <!-- Links que apontam para as seções dentro da mesma página -->
-            <li><a href="#register-section">Cadastrar Aluno</a></li>
-            <li><a href="#attendance-section">Visualizar Presenças</a></li>
-        </ul>
-    </nav>
+    <script>
+        // Conectar à porta serial
+        let port;
+        let reader;
+        
+        document.getElementById('connectButton').addEventListener('click', async () => {
+            try {
+                port = await navigator.serial.requestPort();  // Solicita a porta serial
+                await port.open({ baudRate: 9600 });
+                readSerialData();  // Lê os dados da porta serial
+            } catch (error) {
+                document.getElementById('status').textContent = 'Erro ao conectar ao leitor.';
+            }
+        });
 
-    <hr>
+        async function readSerialData() {
+            const decoder = new TextDecoder();
+            while (port.readable) {
+                reader = port.readable.getReader();
+                const { value, done } = await reader.read();
+                const data = decoder.decode(value);
+                
+                // Exibe os dados da digital (ID do aluno)
+                if (data.includes("ID: ")) {
+                    const studentId = data.replace("ID: ", "").trim();
+                    document.getElementById('status').textContent = `Aluno ID: ${studentId} detectado.`;
+                    addAttendanceRecord(studentId);
+                }
+                
+                reader.releaseLock();
+            }
+        }
 
-    <!-- Seção de Cadastro -->
-    <section id="register-section">
-        <h2>Cadastrar Aluno</h2>
-        <!-- Formulário de cadastro -->
-        <form action="/register" method="POST" enctype="multipart/form-data">
-            <!-- Campo para nome do aluno -->
-            <label for="name">Nome do Aluno:</label>
-            <input type="text" id="name" name="name" required><br><br>
-
-            <!-- Campo para a turma -->
-            <label for="class">Turma:</label>
-            <input type="text" id="class" name="class" required><br><br>
-
-            <!-- Campo para o turno -->
-            <label for="shift">Turno:</label>
-            <select id="shift" name="shift" required>
-                <option value="Manhã">Manhã</option>
-                <option value="Tarde">Tarde</option>
-            </select><br><br>
-
-            <!-- Upload de foto -->
-            <label for="photo">Foto do Aluno:</label>
-            <input type="file" id="photo" name="photo" accept="image/*" required><br><br>
-
-            <!-- Simulação do leitor biométrico -->
-            <p>Coloque o dedo no leitor biométrico para registrar a digital.</p>
-            <button type="button" onclick="alert('Digital registrada com sucesso!')">Registrar Digital</button><br><br>
-
-            <!-- Botão para enviar o formulário -->
-            <button type="submit">Cadastrar Aluno</button>
-        </form>
-    </section>
-
-    <hr>
-
-    <!-- Seção de Visualização de Presenças -->
-    <section id="attendance-section">
-        <h2>Visualizar Presenças</h2>
-        <!-- Tabela que será preenchida dinamicamente -->
-        <table border="1">
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Turma</th>
-                    <th>Turno</th>
-                    <th>Horário de Entrada</th>
-                    <th>Horário de Saída</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Esta seção será preenchida dinamicamente pelo Flask -->
-                <!-- Exemplo estático para visualização -->
-                <tr>
-                    <td>João Silva</td>
-                    <td>3A</td>
-                    <td>Manhã</td>
-                    <td>08:00</td>
-                    <td>12:00</td>
-                    <td><span style="color:green;">✔ No horário</span></td>
-                </tr>
-                <tr>
-                    <td>Maria Oliveira</td>
-                    <td>2B</td>
-                    <td>Tarde</td>
-                    <td>13:20</td>
-                    <td>17:00</td>
-                    <td><span style="color:orange;">⚠ Atrasada</span></td>
-                </tr>
-            </tbody>
-        </table>
-    </section>
-
-    <hr>
-
-    <!-- Rodapé -->
-    <footer>
-        <p>Sistema desenvolvido para o controle de presença escolar.</p>
-    </footer>
+        // Função para adicionar o aluno à lista de presença
+        function addAttendanceRecord(studentId) {
+            const currentTime = new Date().toLocaleTimeString();
+            const status = 'Presente';  // Aqui você pode adicionar a lógica para ver se ele chegou no horário
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${studentId}</td>
+                <td>Nome do Aluno ${studentId}</td>
+                <td>Turma X</td>
+                <td>${currentTime}</td>
+                <td>${status}</td>
+            `;
+            document.getElementById('attendanceList').appendChild(row);
+        }
+    </script>
 </body>
 </html>
