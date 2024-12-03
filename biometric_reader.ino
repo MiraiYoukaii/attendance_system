@@ -1,52 +1,54 @@
 #include <Adafruit_Fingerprint.h>
-
-#if (defined(__AVR__) || defined(ESP8266))
 #include <SoftwareSerial.h>
-SoftwareSerial mySerial(2, 3); // RX, TX
-#else
-#define mySerial Serial1
-#endif
 
+SoftwareSerial mySerial(2, 3);  // RX, TX
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 void setup() {
   Serial.begin(9600);
-  mySerial.begin(57600);
-
+  mySerial.begin(9600);
+  
   if (finger.begin()) {
-    Serial.println("Leitor biométrico inicializado com sucesso!");
+    Serial.println("Sensor biométrico iniciado.");
   } else {
-    Serial.println("Erro ao inicializar o leitor biométrico.");
-    while (1);
-  }
-
-  if (finger.verifyPassword()) {
-    Serial.println("Senha do leitor biométrico confirmada.");
-  } else {
-    Serial.println("Senha do leitor biométrico incorreta.");
+    Serial.println("Sensor biométrico não encontrado.");
     while (1);
   }
 }
 
 void loop() {
-  Serial.println("Aguardando digital...");
-  int id = getFingerprintID();
-  if (id != -1) {
-    Serial.print("REGISTERED_ID:");
-    Serial.println(id);
-  }
-  delay(2000);
+  getFingerprintID();
+  delay(1000);
 }
 
-int getFingerprintID() {
+void getFingerprintID() {
   uint8_t p = finger.getImage();
-  if (p != FINGERPRINT_OK) return -1;
-
+  
+  if (p != FINGERPRINT_OK) {
+    Serial.println("Erro ao capturar digital.");
+    return;
+  }
+  
   p = finger.image2Tz();
-  if (p != FINGERPRINT_OK) return -1;
-
+  
+  if (p != FINGERPRINT_OK) {
+    Serial.println("Erro ao processar digital.");
+    return;
+  }
+  
   p = finger.fingerSearch();
-  if (p != FINGERPRINT_OK) return -1;
+  
+  if (p == FINGERPRINT_OK) {
+    Serial.println("Digital reconhecida.");
+    int id = finger.fingerID;
+    sendAttendanceData(id);  // Enviar dados para o navegador
+  } else {
+    Serial.println("Digital não reconhecida.");
+  }
+}
 
-  return finger.fingerID;
+void sendAttendanceData(int studentId) {
+  // Enviar dados para o computador via Serial (que o HTML pode ler)
+  Serial.print("ID: ");
+  Serial.println(studentId);
 }
