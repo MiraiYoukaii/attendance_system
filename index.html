@@ -4,75 +4,207 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Presença</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            text-align: center;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        .status-green {
+            color: green;
+            font-weight: bold;
+        }
+
+        .status-yellow {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .status-red {
+            color: red;
+            font-weight: bold;
+        }
+
+        .turno {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Sistema de Presença</h1>
+    <h1>Sistema de Presença - Check-in e Check-out</h1>
     
+    <!-- Botão para conectar ao Arduino -->
     <button id="connectButton">Conectar ao Leitor</button>
     <div id="status">Aguardando digital...</div>
 
-    <h2>Lista de Presenças</h2>
-    <table border="1">
+    <h2>Lista de Presenças - Manhã</h2>
+    <table id="morningList">
         <thead>
             <tr>
                 <th>ID</th>
                 <th>Nome</th>
                 <th>Turma</th>
                 <th>Horário de Entrada</th>
+                <th>Horário de Saída</th>
                 <th>Status</th>
             </tr>
         </thead>
-        <tbody id="attendanceList">
-            <!-- Dados de presença serão exibidos aqui -->
+        <tbody id="morningAttendance">
+            <!-- Dados de presença dos alunos da manhã serão exibidos aqui -->
+        </tbody>
+    </table>
+
+    <h2>Lista de Presenças - Tarde</h2>
+    <table id="afternoonList">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Turma</th>
+                <th>Horário de Entrada</th>
+                <th>Horário de Saída</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="afternoonAttendance">
+            <!-- Dados de presença dos alunos da tarde serão exibidos aqui -->
         </tbody>
     </table>
 
     <script>
-        // Conectar à porta serial
+        // Conexão com a porta serial
         let port;
         let reader;
-        
+        const attendanceRecords = { morning: {}, afternoon: {} }; // Separar os registros por turno
+
         document.getElementById('connectButton').addEventListener('click', async () => {
             try {
                 port = await navigator.serial.requestPort();  // Solicita a porta serial
-                await port.open({ baudRate: 9600 });
-                readSerialData();  // Lê os dados da porta serial
+                await port.open({ baudRate: 9600 });          // Abre a porta com a taxa de transmissão
+                readSerialData();                            // Inicia a leitura de dados
             } catch (error) {
                 document.getElementById('status').textContent = 'Erro ao conectar ao leitor.';
             }
         });
 
+        // Lê os dados da porta serial
         async function readSerialData() {
             const decoder = new TextDecoder();
             while (port.readable) {
                 reader = port.readable.getReader();
                 const { value, done } = await reader.read();
                 const data = decoder.decode(value);
-                
-                // Exibe os dados da digital (ID do aluno)
+
+                // Processa os dados recebidos
                 if (data.includes("ID: ")) {
                     const studentId = data.replace("ID: ", "").trim();
-                    document.getElementById('status').textContent = `Aluno ID: ${studentId} detectado.`;
-                    addAttendanceRecord(studentId);
+                    processAttendance(studentId);
                 }
-                
-                reader.releaseLock();
+
+                if (done) {
+                    reader.releaseLock();
+                    break;
+                }
             }
         }
 
-        // Função para adicionar o aluno à lista de presença
-        function addAttendanceRecord(studentId) {
+        // Processa o registro de Check-in ou Check-out
+        function processAttendance(studentId) {
             const currentTime = new Date().toLocaleTimeString();
-            const status = 'Presente';  // Aqui você pode adicionar a lógica para ver se ele chegou no horário
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${studentId}</td>
-                <td>Nome do Aluno ${studentId}</td>
-                <td>Turma X</td>
-                <td>${currentTime}</td>
-                <td>${status}</td>
-            `;
-            document.getElementById('attendanceList').appendChild(row);
+            let student = attendanceRecords.morning[studentId] || attendanceRecords.afternoon[studentId];
+            let turno;
+
+            if (!student) {
+                // O aluno ainda não foi registrado, perguntar pelo turno
+                let turnoSelecionado = prompt("Digite o turno do aluno (manhã ou tarde):");
+
+                if (turnoSelecionado === 'manhã' || turnoSelecionado === 'tarde') {
+                    turno = turnoSelecionado;
+                    student = {
+                        id: studentId,
+                        name: `Nome do Aluno ${studentId}`, // Nome fictício
+                        class: 'Turma X',                    // Turma fictícia
+                        turno: turno,
+                        checkIn: currentTime,
+                        checkOut: null,
+                        status: 'Presente'
+                    };
+
+                    // Armazena no turno correspondente
+                    attendanceRecords[turno][studentId] = student;
+
+                    document.getElementById('status').textContent = `Check-in registrado para o aluno ID: ${studentId}`;
+                } else {
+                    document.getElementById('status').textContent = 'Turno inválido!';
+                    return;
+                }
+            } else if (!student.checkOut) {
+                // Registro de Check-out
+                student.checkOut = currentTime;
+                student.status = 'Concluído';
+
+                document.getElementById('status').textContent = `Check-out registrado para o aluno ID: ${studentId}`;
+            } else {
+                // Caso o aluno já tenha feito Check-in e Check-out
+                document.getElementById('status').textContent = `Aluno ID: ${studentId} já realizou Check-in e Check-out.`;
+            }
+
+            updateAttendanceTable();
+        }
+
+        // Atualiza a tabela de presenças para os dois turnos
+        function updateAttendanceTable() {
+            // Atualiza a lista de alunos da manhã
+            updateTurnoTable('morning', 'morningAttendance');
+
+            // Atualiza a lista de alunos da tarde
+            updateTurnoTable('afternoon', 'afternoonAttendance');
+        }
+
+        // Função para atualizar a tabela de um turno específico
+        function updateTurnoTable(turno, tableId) {
+            const tbody = document.getElementById(tableId);
+            tbody.innerHTML = ''; // Limpa a tabela para recriá-la
+
+            for (const studentId in attendanceRecords[turno]) {
+                const record = attendanceRecords[turno][studentId];
+                const row = document.createElement('tr');
+
+                // Determina a cor do status
+                let statusClass = 'status-green';
+                if (record.status === 'Presente' && !record.checkOut) {
+                    const checkInHour = parseInt(record.checkIn.split(':')[0], 10);
+                    if (checkInHour > 8) { // Exemplo: aluno atrasado se entrou após 8h
+                        statusClass = 'status-yellow';
+                        record.status = 'Atrasado';
+                    }
+                } else if (!record.checkIn) {
+                    statusClass = 'status-red';
+                    record.status = 'Ausente';
+                }
+
+                row.innerHTML = `
+                    <td>${record.id}</td>
+                    <td>${record.name}</td>
+                    <td>${record.class}</td>
+                    <td>${record.checkIn || '---'}</td>
+                    <td>${record.checkOut || '---'}</td>
+                    <td class="${statusClass}">${record.status}</td>
+                `;
+
+                tbody.appendChild(row);
+            }
         }
     </script>
 </body>
